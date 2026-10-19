@@ -1,0 +1,24 @@
+{
+  "name": "nexus-api",
+  "type": "web",
+  "build": {
+    "dockerfile": "Dockerfile.api",
+    "context": "."
+  },
+  "ports": [
+    {
+      "port": 8000,
+      "protocol": "http"
+    }
+  ],
+  "env": [
+    {
+      "key": "PORT",
+      "value": "8000"
+    }
+  ],
+  "regions": ["was"],
+  "instance": {
+    "type": "nano"
+  }
+}
