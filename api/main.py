@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, HttpUrl
 from typing import Optional, List, Dict, Any
 import yt_dlp
@@ -17,10 +17,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware
+# CORS middleware - UPDATE THIS WITH YOUR VERCEL URL
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly in production
+    allow_origins=["*"],  # TODO: Replace with your Vercel URL in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,6 +45,10 @@ class DownloadOptions(BaseModel):
 class DownloadRequest(BaseModel):
     url: str
     options: DownloadOptions
+
+
+class AnalyzeRequest(BaseModel):
+    url: str
 
 
 class DownloadResponse(BaseModel):
@@ -205,6 +209,49 @@ async def root():
     }
 
 
+@app.post("/api/analyze")
+async def analyze_url(request: AnalyzeRequest):
+    """Analyze a URL and return video information for preview"""
+    url = request.url
+
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+
+    try:
+        ydl_opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "extract_flat": False,
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        return {
+            "title": info.get("title"),
+            "description": info.get("description"),
+            "thumbnail": info.get("thumbnail"),
+            "duration": info.get("duration", 0),
+            "uploader": info.get("uploader"),
+            "uploadDate": info.get("upload_date"),
+            "viewCount": info.get("view_count"),
+            "isPlaylist": info.get("_type") == "playlist",
+            "formats": [
+                {
+                    "formatId": f.get("format_id"),
+                    "ext": f.get("ext"),
+                    "quality": f.get("format_note"),
+                    "filesize": f.get("filesize"),
+                    "resolution": f.get("resolution"),
+                }
+                for f in info.get("formats", [])[:10]  # Limit to first 10 formats
+            ],
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to analyze URL: {str(e)}")
+
+
 @app.post("/api/download", response_model=DownloadResponse)
 async def create_download(
     request: DownloadRequest, background_tasks: BackgroundTasks
@@ -272,49 +319,6 @@ async def delete_download(download_id: str):
     # TODO: Clean up files
 
     return {"message": "Download deleted successfully"}
-
-
-@app.post("/api/analyze")
-async def analyze_url(request: dict):
-    """Analyze a URL without downloading"""
-    url = request.get("url")
-
-    if not url:
-        raise HTTPException(status_code=400, detail="URL is required")
-
-    try:
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "extract_flat": False,
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-        return {
-            "title": info.get("title"),
-            "description": info.get("description"),
-            "thumbnail": info.get("thumbnail"),
-            "duration": info.get("duration"),
-            "uploader": info.get("uploader"),
-            "uploadDate": info.get("upload_date"),
-            "viewCount": info.get("view_count"),
-            "isPlaylist": info.get("_type") == "playlist",
-            "formats": [
-                {
-                    "formatId": f.get("format_id"),
-                    "ext": f.get("ext"),
-                    "quality": f.get("format_note"),
-                    "filesize": f.get("filesize"),
-                    "resolution": f.get("resolution"),
-                }
-                for f in info.get("formats", [])[:10]  # Limit to first 10 formats
-            ],
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to analyze URL: {str(e)}")
 
 
 if __name__ == "__main__":

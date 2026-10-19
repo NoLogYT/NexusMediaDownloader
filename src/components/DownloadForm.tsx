@@ -12,6 +12,8 @@ import {
   Image as ImageIcon,
   FileText,
   Info,
+  Play,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -31,10 +33,22 @@ interface DownloadFormProps {
   onDownloadAdded?: () => void;
 }
 
+interface VideoInfo {
+  title: string;
+  thumbnail: string;
+  duration: number;
+  uploader: string;
+  uploadDate: string;
+  viewCount: number;
+  formats: any[];
+}
+
 export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
   const [url, setUrl] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const [options, setOptions] = useState<DownloadOptions>({
     downloadType: "video",
     quality: "best",
@@ -42,6 +56,33 @@ export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
     downloadSubtitles: false,
     embedMetadata: true,
   });
+
+  const analyzeUrl = async () => {
+    if (!url.trim()) {
+      toast.error("Please enter a URL");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await axios.post(`${apiUrl}/api/analyze`, {
+        url: url.trim(),
+      });
+
+      setVideoInfo(response.data);
+      setShowPreview(true);
+      toast.success("Video analyzed successfully!");
+    } catch (error: any) {
+      console.error("Analysis error:", error);
+      const message =
+        error.response?.data?.detail || "Failed to analyze URL. Please check the URL and try again.";
+      toast.error(message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +103,8 @@ export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
 
       toast.success("Download started successfully!");
       setUrl("");
+      setVideoInfo(null);
+      setShowPreview(false);
       onDownloadAdded?.();
     } catch (error: any) {
       console.error("Download error:", error);
@@ -81,6 +124,20 @@ export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
     metadata: Info,
   };
 
+  const formatDuration = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <form onSubmit={handleSubmit} className="card space-y-6">
@@ -89,22 +146,75 @@ export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
           <label htmlFor="url" className="block text-sm font-medium text-slate-300">
             Media URL
           </label>
-          <div className="relative">
-            <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-            <input
-              id="url"
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Paste video, audio, or playlist URL..."
-              className="input-field pl-12"
-              disabled={isAnalyzing}
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <input
+                id="url"
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Paste video, audio, or playlist URL..."
+                className="input-field pl-12"
+                disabled={isAnalyzing}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={analyzeUrl}
+              disabled={isAnalyzing || !url.trim()}
+              className="btn-secondary px-4 flex items-center gap-2"
+            >
+              {isAnalyzing ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Play className="w-5 h-5" />
+              )}
+              Preview
+            </button>
           </div>
           <p className="text-xs text-slate-500">
             Supports YouTube, Vimeo, SoundCloud, and 1000+ other platforms
           </p>
         </div>
+
+        {/* Video Preview */}
+        {showPreview && videoInfo && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="glass rounded-xl overflow-hidden"
+          >
+            <div className="relative">
+              <img
+                src={videoInfo.thumbnail}
+                alt={videoInfo.title}
+                className="w-full h-64 object-cover"
+              />
+              <button
+                onClick={() => setShowPreview(false)}
+                className="absolute top-2 right-2 p-2 bg-slate-900/80 hover:bg-slate-900 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              {videoInfo.duration > 0 && (
+                <div className="absolute bottom-2 right-2 px-2 py-1 bg-slate-900/90 rounded text-xs font-medium">
+                  {formatDuration(videoInfo.duration)}
+                </div>
+              )}
+            </div>
+            <div className="p-4 space-y-2">
+              <h3 className="text-lg font-semibold text-slate-100">{videoInfo.title}</h3>
+              <div className="flex items-center gap-4 text-sm text-slate-400">
+                {videoInfo.uploader && <span>{videoInfo.uploader}</span>}
+                {videoInfo.viewCount && (
+                  <span>{formatNumber(videoInfo.viewCount)} views</span>
+                )}
+                {videoInfo.uploadDate && <span>{videoInfo.uploadDate}</span>}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Download Type Selection */}
         <div className="space-y-2">
@@ -236,7 +346,7 @@ export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
           {isAnalyzing ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Analyzing...
+              Processing...
             </>
           ) : (
             <>
