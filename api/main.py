@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import yt_dlp
 import uuid
@@ -10,6 +10,7 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 import json
+import traceback
 
 app = FastAPI(
     title="Nexus Media Downloader API",
@@ -103,6 +104,9 @@ def get_ydl_opts(download_id: str, options: DownloadOptions) -> dict:
         "quiet": False,
         "no_warnings": False,
         "extract_flat": False,
+        "nocheckcertificate": True,
+        "ignoreerrors": False,
+        "no_color": True,
     }
 
     # Download type specific options
@@ -189,10 +193,13 @@ async def download_media(download_id: str, url: str, options: DownloadOptions):
         )
 
     except Exception as e:
+        error_msg = str(e)
+        print(f"Download error for {download_id}: {error_msg}")
+        print(traceback.format_exc())
         downloads_db[download_id].update(
             {
                 "status": "failed",
-                "errorMessage": str(e),
+                "errorMessage": error_msg,
                 "completedAt": datetime.utcnow().isoformat(),
             }
         )
@@ -201,11 +208,16 @@ async def download_media(download_id: str, url: str, options: DownloadOptions):
 @app.get("/")
 async def root():
     """Health check endpoint"""
+    try:
+        yt_version = yt_dlp.version.__version__
+    except:
+        yt_version = "unknown"
+
     return {
         "name": "Nexus Media Downloader API",
         "version": "1.0.0",
         "status": "online",
-        "yt_dlp_version": yt_dlp.version.__version__,
+        "yt_dlp_version": yt_version,
     }
 
 
@@ -214,7 +226,7 @@ async def analyze_url(request: AnalyzeRequest):
     """Analyze a URL and return video information for preview"""
     url = request.url
 
-    if not url:
+    if not url or not url.strip():
         raise HTTPException(status_code=400, detail="URL is required")
 
     try:
@@ -222,34 +234,50 @@ async def analyze_url(request: AnalyzeRequest):
             "quiet": True,
             "no_warnings": True,
             "extract_flat": False,
+            "nocheckcertificate": True,
+            "no_color": True,
         }
+
+        print(f"Analyzing URL: {url}")
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
+        if not info:
+            raise HTTPException(status_code=400, detail="Could not extract video information")
+
+        print(f"Successfully analyzed: {info.get('title', 'Unknown')}")
+
         return {
-            "title": info.get("title"),
-            "description": info.get("description"),
-            "thumbnail": info.get("thumbnail"),
+            "title": info.get("title", "Unknown"),
+            "description": info.get("description", "")[:500] if info.get("description") else "",
+            "thumbnail": info.get("thumbnail", ""),
             "duration": info.get("duration", 0),
-            "uploader": info.get("uploader"),
-            "uploadDate": info.get("upload_date"),
-            "viewCount": info.get("view_count"),
+            "uploader": info.get("uploader", "Unknown"),
+            "uploadDate": info.get("upload_date", ""),
+            "viewCount": info.get("view_count", 0),
             "isPlaylist": info.get("_type") == "playlist",
             "formats": [
                 {
-                    "formatId": f.get("format_id"),
-                    "ext": f.get("ext"),
-                    "quality": f.get("format_note"),
-                    "filesize": f.get("filesize"),
-                    "resolution": f.get("resolution"),
+                    "formatId": f.get("format_id", ""),
+                    "ext": f.get("ext", ""),
+                    "quality": f.get("format_note", ""),
+                    "filesize": f.get("filesize", 0),
+                    "resolution": f.get("resolution", ""),
                 }
-                for f in info.get("formats", [])[:10]  # Limit to first 10 formats
+                for f in info.get("formats", [])[:10]
             ],
         }
 
+    except yt_dlp.utils.DownloadError as e:
+        error_msg = str(e)
+        print(f"yt-dlp error: {error_msg}")
+        raise HTTPException(status_code=400, detail=f"Video not available: {error_msg}")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to analyze URL: {str(e)}")
+        error_msg = str(e)
+        print(f"Analysis error: {error_msg}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to analyze URL: {error_msg}")
 
 
 @app.post("/api/download", response_model=DownloadResponse)
@@ -259,8 +287,12 @@ async def create_download(
     """Create a new download task"""
 
     # Validate URL
-    if not request.url.strip():
+    if not request.url or not request.url.strip():
         raise HTTPException(status_code=400, detail="URL is required")
+
+    url = request.url.strip()
+
+    print(f"Download request for: {url}")
 
     # Generate unique download ID
     download_id = str(uuid.uuid4())
@@ -268,7 +300,7 @@ async def create_download(
     # Initialize download record
     downloads_db[download_id] = {
         "id": download_id,
-        "url": request.url,
+        "url": url,
         "title": "Analyzing...",
         "status": "queued",
         "progress": 0,
@@ -277,11 +309,11 @@ async def create_download(
     }
 
     # Start download in background
-    background_tasks.add_task(download_media, download_id, request.url, request.options)
+    background_tasks.add_task(download_media, download_id, url, request.options)
 
     return DownloadResponse(
         id=download_id,
-        url=request.url,
+        url=url,
         status="queued",
         message="Download queued successfully",
     )
