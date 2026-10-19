@@ -66,7 +66,7 @@ export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
     setIsAnalyzing(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
       const response = await axios.post(`${apiUrl}/api/analyze`, {
         url: url.trim(),
       });
@@ -95,7 +95,7 @@ export default function DownloadForm({ onDownloadAdded }: DownloadFormProps) {
     setIsAnalyzing(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
       const response = await axios.post(`${apiUrl}/api/download`, {
         url: url.trim(),
         options,

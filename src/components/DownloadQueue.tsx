@@ -43,7 +43,7 @@ export default function DownloadQueue() {
 
   const fetchDownloads = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
       const response = await axios.get(`${apiUrl}/api/downloads`);
       setDownloads(response.data);
     } catch (error) {
