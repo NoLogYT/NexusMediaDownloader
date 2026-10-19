@@ -1,11 +1,3 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "env": {
-    "NEXT_PUBLIC_API_URL": {
-      "description": "Backend API URL from Koyeb",
-      "value": "http://localhost:8000"
-    }
-  }
+  "framework": "nextjs"
 }
