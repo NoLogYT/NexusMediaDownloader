@@ -18,14 +18,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware - Updated with production URLs
+# CORS middleware - Allow all Vercel deployments and localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://nexus-mediadownloader-4t20qgw5k-cid-kagenou.vercel.app",
-        "https://nexus-mediadownloader-cid-kagenou.vercel.app",  # Production URL
-        "http://localhost:3000",  # Local development
-    ],
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
