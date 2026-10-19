@@ -31,6 +31,12 @@ app.add_middleware(
 DOWNLOAD_DIR = Path("./downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
 
+# Handle cookies if provided via environment variable
+cookies_env = os.environ.get("COOKIES_TXT")
+if cookies_env:
+    with open("cookies.txt", "w", encoding="utf-8") as f:
+        f.write(cookies_env)
+
 # In-memory download tracking (use Redis in production)
 downloads_db: Dict[str, Dict[str, Any]] = {}
 
@@ -107,12 +113,10 @@ def get_ydl_opts(download_id: str, options: DownloadOptions) -> dict:
         "nocheckcertificate": True,
         "ignoreerrors": False,
         "no_color": True,
-        # Enhanced anti-bot measures
+        # Enhanced anti-bot measures using multiple player clients
         "extractor_args": {
             "youtube": {
-                "skip": ["hls", "dash"],
-                "player_skip": ["js", "configs", "webpage"],
-                "player_client": ["android", "web"],
+                "player_client": ["ios", "android", "web"],
             }
         },
         # Add headers to avoid bot detection
@@ -123,6 +127,9 @@ def get_ydl_opts(download_id: str, options: DownloadOptions) -> dict:
             "Sec-Fetch-Mode": "navigate",
         },
     }
+
+    if os.path.exists("cookies.txt"):
+        ydl_opts["cookiefile"] = "cookies.txt"
 
     # Download type specific options
     if options.downloadType == "audio":
@@ -251,12 +258,10 @@ async def analyze_url(request: AnalyzeRequest):
             "extract_flat": False,
             "nocheckcertificate": True,
             "no_color": True,
-            # Enhanced anti-bot measures
+            # Enhanced anti-bot measures using multiple player clients
             "extractor_args": {
                 "youtube": {
-                    "skip": ["hls", "dash"],
-                    "player_skip": ["js", "configs", "webpage"],
-                    "player_client": ["android", "web"],
+                    "player_client": ["ios", "android", "web"],
                 }
             },
             # Add headers to avoid bot detection
@@ -267,6 +272,9 @@ async def analyze_url(request: AnalyzeRequest):
                 "Sec-Fetch-Mode": "navigate",
             },
         }
+
+        if os.path.exists("cookies.txt"):
+            ydl_opts["cookiefile"] = "cookies.txt"
 
         print(f"Analyzing URL: {url}")
 
