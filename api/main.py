@@ -128,15 +128,15 @@ def get_ydl_opts(download_id: str, options: DownloadOptions) -> dict:
             }
         )
     elif options.downloadType == "video":
-        # Quality selection
+        # Quality selection - more flexible format strings with fallbacks
         if options.quality == "best":
-            ydl_opts["format"] = "bestvideo+bestaudio/best"
+            ydl_opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
         elif options.quality == "1080p":
-            ydl_opts["format"] = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+            ydl_opts["format"] = "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
         elif options.quality == "720p":
-            ydl_opts["format"] = "bestvideo[height<=720]+bestaudio/best[height<=720]"
+            ydl_opts["format"] = "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]/best"
         elif options.quality == "480p":
-            ydl_opts["format"] = "bestvideo[height<=480]+bestaudio/best[height<=480]"
+            ydl_opts["format"] = "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best[height<=480]/best"
 
         ydl_opts["merge_output_format"] = "mp4"
 
