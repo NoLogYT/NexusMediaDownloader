@@ -1,0 +1,163 @@
+# Dependencies
+node_modules
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+.pnp
+.pnp.js
+
+# Next.js
+.next
+out
+dist
+build
+.cache
+
+# Production
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Local env files
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+api/downloads/
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg
+MANIFEST
+.pytest_cache/
+.python-version
+*.pyc
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv
+*.db
+*.sqlite
+*.sqlite3
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.tmproj
+*.tmproject
+tmtags
+*.code-workspace
+.history/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Testing
+coverage/
+*.lcov
+.nyc_output/
+*.cover
+*.py,cover
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.coveragerc
+junit.xml
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
+docker-compose.override.yml
+
+# Misc
+.vercel
+*.pem
+*.key
+*.cert
+*.crt
+.turbo
+.eslintcache
+.stylelintcache
+.prettierignore
+.node_repl_history
+*.tgz
+*.gz
+*.zip
+*.tar
+*.rar
+.npm
+.yarn-integrity
+.pnp.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+*.old
+*.orig
+
+# Lock files (optional - uncomment if needed)
+# bun.lockb
+
+# Build artifacts
+*.map
+.webpack/
