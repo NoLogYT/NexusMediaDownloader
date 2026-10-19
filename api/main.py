@@ -111,6 +111,13 @@ def get_ydl_opts(download_id: str, options: DownloadOptions) -> dict:
         "nocheckcertificate": True,
         "ignoreerrors": False,
         "no_color": True,
+        # Add headers to avoid bot detection
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+        },
     }
 
     # Download type specific options
@@ -240,6 +247,13 @@ async def analyze_url(request: AnalyzeRequest):
             "extract_flat": False,
             "nocheckcertificate": True,
             "no_color": True,
+            # Add headers to avoid bot detection
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-us,en;q=0.5",
+                "Sec-Fetch-Mode": "navigate",
+            },
         }
 
         print(f"Analyzing URL: {url}")
